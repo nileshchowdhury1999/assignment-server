@@ -198,11 +198,6 @@ async function run() {
       }
     });
 
-    app.get("/cart", async (req, res) => {
-      const result = await cartCollection.find().toArray();
-      res.send(result);
-    });
-
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
     console.log(
@@ -215,7 +210,7 @@ async function run() {
 }
 run().catch(console.dir);
 
-app.get("/", (req, res) => {
+app.get("/", (_req, res) => {
   res.send("running server");
 });
 
