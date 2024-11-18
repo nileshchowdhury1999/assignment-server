@@ -46,9 +46,9 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    const courseCollection = client.db("weTech").collection("lessons");
-    const cartCollection = client.db("weTech").collection("carts");
-    const orderCollection = client.db("weTech").collection("orders");
+    const courseCollection = client.db("pro").collection("lessons");
+    const cartCollection = client.db("pro").collection("carts");
+    const orderCollection = client.db("pro").collection("orders");
 
 
     // get lessons
