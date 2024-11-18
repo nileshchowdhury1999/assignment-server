@@ -83,6 +83,125 @@ async function run() {
       const result = await courseCollection.find().toArray();
       res.send(result);
     });
+    // cart
+    app.post("/cart", async (req, res) => {
+      const cartData = req.body;
+      const lessonId = cartData.lesson_id;
+
+
+      try {
+
+        const course = await courseCollection.findOne({
+          _id: new ObjectId(lessonId),
+        });
+
+        if (!course) {
+          return res.status(404).send({ error: "Course not found." });
+        }
+
+
+        const existingCartItem = await cartCollection.findOne({
+          lesson_id: lessonId,
+        });
+
+        if (existingCartItem) {
+
+          const updateResult = await cartCollection.updateOne(
+            { lesson_id: lessonId },
+            { $inc: { space: 1 } }
+          );
+          // decrement from lesson
+          const updateLesson = await courseCollection.updateOne(
+            { _id: new ObjectId(lessonId) },
+            {
+              $inc: { space: -1 },
+            }
+          );
+          return res.send({
+            message: "Lesson already exists in the cart. Space incremented.",
+            cartUpdateResult: updateResult,
+          });
+        } else {
+
+          const newCartItem = {
+            lesson_id: lessonId,
+            image: cartData.image,
+            subject: cartData.subject,
+            location: cartData.location,
+            price: cartData.price,
+            space: 1,
+          };
+
+          const insertResult = await cartCollection.insertOne(newCartItem);
+
+          if (insertResult.acknowledged) {
+            const updateLesson = await courseCollection.updateOne(
+              { _id: new ObjectId(lessonId) },
+              {
+                $inc: { space: -1 },
+              }
+            );
+            return res.send({
+              message: "New lesson added to the cart.",
+              cartInsertResult: insertResult,
+            });
+          } else {
+            return res
+              .status(500)
+              .send({ error: "Failed to insert data into the cart." });
+          }
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        res
+          .status(500)
+          .send({ error: "An error occurred while processing the request." });
+      }
+    });
+
+    app.delete("/cart/:id", async (req, res) => {
+      const id = req.params.id;
+
+      try {
+
+        const cartItem = await cartCollection.findOne({ lesson_id: id });
+
+        if (!cartItem) {
+          return res.status(404).send({ error: "Cart item not found." });
+        }
+
+        const spaceToAdd = cartItem.space || 0;
+
+
+        const result = await cartCollection.deleteOne({ lesson_id: id });
+
+        if (result.deletedCount > 0) {
+
+          const updateResult = await courseCollection.updateOne(
+            { _id: new ObjectId(id) },
+            { $inc: { space: spaceToAdd } }
+          );
+
+          res.send({
+            message: "Item deleted successfully and course space updated.",
+            cartDeleteResult: result,
+            courseUpdateResult: updateResult,
+          });
+        } else {
+          res.status(500).send({ error: "Failed to delete the cart item." });
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        res
+          .status(500)
+          .send({ error: "An error occurred while processing the request." });
+      }
+    });
+
+    app.get("/cart", async (req, res) => {
+      const result = await cartCollection.find().toArray();
+      res.send(result);
+    });
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
