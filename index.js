@@ -8,27 +8,6 @@ const path = require("path");
 app.use(cors());
 app.use(express.json());
 
-// logger middleware
-app.use((req, res, next) => {
-  const logDetails = `Method: ${req.method}, URL: ${req.originalUrl}, Time: ${new Date().toISOString()}`;
-  console.log(logDetails);
-  next();
-});
-
-// Static File Middleware for Lesson Images
-const imagesDir = path.join(__dirname, "./images");
-app.use("/images", express.static(imagesDir, {
-  fallthrough: false
-}));
-
-// Middleware to handle errors when an image file is not found
-app.use((err, req, res, next) => {
-  if (err.status === 404) {
-    res.status(404).send({ error: "Image file not found" });
-  } else {
-    next(err); // Pass other errors to the next error handler
-  }
-});
 
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
