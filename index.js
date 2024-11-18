@@ -198,6 +198,19 @@ async function run() {
       }
     });
 
+    app.post("/order", async (req, res) => {
+      const orderData = req.body;
+      const cartData = await cartCollection.find().toArray();
+      const result = await orderCollection.insertOne({
+        ...orderData,
+        cartData,
+      });
+      if (result.acknowledged) {
+        await cartCollection.deleteMany({});
+      }
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
     console.log(
