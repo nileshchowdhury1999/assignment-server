@@ -134,92 +134,81 @@ async function run() {
 
           const insertResult = await cartCollection.insertOne(newCartItem);
 
-          if (insertResult.acknowledged) {
-            const updateLesson = await courseCollection.updateOne(
-              { _id: new ObjectId(lessonId) },
-              {
-                $inc: { space: -1 },
-              }
-            );
-            return res.send({
-              message: "New lesson added to the cart.",
-              cartInsertResult: insertResult,
-            });
-          } else {
-            return res
-              .status(500)
-              .send({ error: "Failed to insert data into the cart." });
-          }
+
+          return res
+            .status(500)
+            .send({ error: "Failed to insert data into the cart." });
         }
+      }
       } catch (error) {
-        console.error("Error:", error);
-        res
-          .status(500)
-          .send({ error: "An error occurred while processing the request." });
+      console.error("Error:", error);
+      res
+        .status(500)
+        .send({ error: "An error occurred while processing the request." });
+    }
+  });
+
+  app.delete("/cart/:id", async (req, res) => {
+    const id = req.params.id;
+
+    try {
+
+      const cartItem = await cartCollection.findOne({ lesson_id: id });
+
+      if (!cartItem) {
+        return res.status(404).send({ error: "Cart item not found." });
       }
-    });
 
-    app.delete("/cart/:id", async (req, res) => {
-      const id = req.params.id;
-
-      try {
-
-        const cartItem = await cartCollection.findOne({ lesson_id: id });
-
-        if (!cartItem) {
-          return res.status(404).send({ error: "Cart item not found." });
-        }
-
-        const spaceToAdd = cartItem.space || 0;
+      const spaceToAdd = cartItem.space || 0;
 
 
-        const result = await cartCollection.deleteOne({ lesson_id: id });
+      const result = await cartCollection.deleteOne({ lesson_id: id });
 
-        if (result.deletedCount > 0) {
+      if (result.deletedCount > 0) {
 
-          const updateResult = await courseCollection.updateOne(
-            { _id: new ObjectId(id) },
-            { $inc: { space: spaceToAdd } }
-          );
+        const updateResult = await courseCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $inc: { space: spaceToAdd } }
+        );
 
-          res.send({
-            message: "Item deleted successfully and course space updated.",
-            cartDeleteResult: result,
-            courseUpdateResult: updateResult,
-          });
-        } else {
-          res.status(500).send({ error: "Failed to delete the cart item." });
-        }
-      } catch (error) {
-        console.error("Error:", error);
-        res
-          .status(500)
-          .send({ error: "An error occurred while processing the request." });
+        res.send({
+          message: "Item deleted successfully and course space updated.",
+          cartDeleteResult: result,
+          courseUpdateResult: updateResult,
+        });
+      } else {
+        res.status(500).send({ error: "Failed to delete the cart item." });
       }
-    });
+    } catch (error) {
+      console.error("Error:", error);
+      res
+        .status(500)
+        .send({ error: "An error occurred while processing the request." });
+    }
+  });
 
-    app.post("/order", async (req, res) => {
-      const orderData = req.body;
-      const cartData = await cartCollection.find().toArray();
-      const result = await orderCollection.insertOne({
-        ...orderData,
-        cartData,
-      });
-      if (result.acknowledged) {
-        await cartCollection.deleteMany({});
-      }
-      res.send(result);
+  app.post("/order", async (req, res) => {
+    const orderData = req.body;
+    const cartData = await cartCollection.find().toArray();
+    const result = await orderCollection.insertOne({
+      ...orderData,
+      cartData,
     });
+    if (result.acknowledged) {
+      await cartCollection.deleteMany({});
+    }
+    res.send(result);
+  });
 
-    // Send a ping to confirm a successful connection
-    // await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
-  } finally {
-    // Ensures that the client will close when you finish/error
-    // await client.close();
-  }
+  // Send a ping to confirm a successful connection
+  // await client.db("admin").command({ ping: 1 });
+  console.log(
+    "Pinged your deployment. You successfully connected to MongoDB!"
+  );
+} finally {
+  // Ensures that the client will close when you finish/error
+  // await client.close();
+}
 }
 run().catch(console.dir);
 
